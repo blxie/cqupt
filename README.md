@@ -74,3 +74,42 @@ netsh wlan connect name=CQUPT ssid=CQUPT
 
 
 > 如果蓝屏，到官方网站手动下载安装最新的网络驱动器！
+
+
+## Git
+
+`dev -> main_ -> main`
+
+```bash
+$env:https_proxy="http://127.0.0.1:10809"
+
+git init
+git branch -M main
+git remote add origin https://github.com/blxie/cqupt.git
+
+git add .\README.md
+git status
+git commit -m "init README"
+git push -u origin main
+
+git branch main_
+git checkout main_
+# 将 main_ 添加到远程仓库的分支中，隶属于 main 分支，dev 分支不进行推送
+# 在 dev 上进行开发，合并到 main_ 和 main，然后再推送到远程仓库
+git push origin main_
+
+git checkout main_
+## 在 main_ 下创建 dev 进行开发
+git branch dev
+git pull origin main_
+git checkout dev
+
+git add xxx
+git commit -m ""
+git push -u origin main_ -f
+
+## 将 main_ 合并到 main
+git checkout main
+git merge --allow-unrelated-histories main_
+git push -u origin main
+```

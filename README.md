@@ -108,7 +108,8 @@ git push -u origin main
 
 ## 将 main_ 合并到 main
 git checkout main
-git merge --allow-unrelated-histories main_
+git merge --allow-unrelated-histories main
+## git merge 之后不用再 commit！直接进行 push 推送即可！
 git push -u origin main
 ```
 

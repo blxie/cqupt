@@ -114,3 +114,19 @@ git push -u origin main
 ```
 
 > 注意：`merger` 时不能 `commit --amend`，如果要在上一级修改，直接切换到这个分支 e.g. `main`，然后在 `main` 上直接进行 `--amend` 操作！
+
+
+```bash
+git checkout dev
+git status
+git add -u
+git commit -m "milestone! with retry"
+git push -u origin dev
+
+git checkout main
+git merge dev
+git push -u origin main
+git tag -a v1.0 -m "Perfect!"
+git tag
+git push origin v1.0
+```

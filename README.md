@@ -78,7 +78,7 @@ netsh wlan connect name=CQUPT ssid=CQUPT
 
 ## Git
 
-`dev -> main_ -> main`
+`dev -> main`
 
 ```bash
 $env:https_proxy="http://127.0.0.1:10809"
@@ -92,24 +92,24 @@ git status
 git commit -m "init README"
 git push -u origin main
 
-git branch main_
-git checkout main_
-# 将 main_ 添加到远程仓库的分支中，隶属于 main 分支，dev 分支不进行推送
-# 在 dev 上进行开发，合并到 main_ 和 main，然后再推送到远程仓库
-git push origin main_
-
-git checkout main_
-## 在 main_ 下创建 dev 进行开发
 git branch dev
-git pull origin main_
+git checkout dev
+# 将 dev 添加到远程仓库的分支中，隶属于 main 分支
+# 在 dev 上进行开发，只有在 milestone 才合并到 main！然后再推送到远程仓库
+git push origin dev
+
+## 同步 main，然后开发
+git pull origin main
 git checkout dev
 
 git add xxx
 git commit -m ""
-git push -u origin main_ -f
+git push -u origin main
 
 ## 将 main_ 合并到 main
 git checkout main
 git merge --allow-unrelated-histories main_
 git push -u origin main
 ```
+
+> 注意：`merger` 时不能 `commit --amend`，如果要在上一级修改，直接切换到这个分支 e.g. `main`，然后在 `main` 上直接进行 `--amend` 操作！

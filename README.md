@@ -130,3 +130,13 @@ git tag -a v1.0 -m "Perfect!"
 git tag
 git push origin v1.0
 ```
+
+
+## 打包
+
+```bash
+pyinstaller.exe --uac-admin login2cqupt.py
+pyinstaller.exe --uac-admin app.py --add-data="icons;icons" --noconsole
+
+--account "3116431" --password "yjshl4_Z" --operator "移动" --log_path "./cqupt.log" --device "pc" --sleep_time 30
+```

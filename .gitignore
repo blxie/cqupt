@@ -3,3 +3,8 @@ build/*
 dist/*
 test*
 *.spec
+*.log
+*tmp*
+__pycache__/*
+*copy*
+*.exe

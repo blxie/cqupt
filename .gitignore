@@ -1,5 +1,10 @@
 .vscode
 build/*
 dist/*
-test*
+test
 *.spec
+*.log
+*tmp*
+__pycache__/*
+*copy*
+*.exe

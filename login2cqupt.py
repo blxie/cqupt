@@ -441,7 +441,7 @@ def main():
     )
 
     parser.add_argument("--log_path", default="./cqupt.log", type=str, help="log path save dir")
-    parser.add_argument("--sleep_time", default=3, type=int, help="interval time of auto login")
+    parser.add_argument("--sleep_time", default=30, type=int, help="interval time of auto login")
     parser.add_argument("-d", "--device", default="pc", choices=["pc", "phone"], help="fake device, phone or pc")
 
     args = parser.parse_args()

@@ -2,7 +2,7 @@
 
 Auto-login toy for CQUPT.
 
-## 环境准备
+## 环境准备（注意 `Powershell` 必须安装！）
 
 -   `Python > 3.0`
 
@@ -10,6 +10,15 @@ Auto-login toy for CQUPT.
 conda create -n test python=3.8
 conda activate test
 pip install -r requirements.txt
+```
+
+- `PowerShell` 安装（依赖于这个命令行软件）
+
+> 官方文档：https://learn.microsoft.com/zh-cn/powershell/scripting/install/installing-powershell-on-windows?view=powershell-7.3#install-powershell-using-winget-recommended
+
+```powershell
+winget search Microsoft.PowerShell
+winget install --id Microsoft.Powershell --source winget
 ```
 
 ## `WIN` 打包并安装为服务程序

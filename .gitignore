@@ -1,6 +1,5 @@
 .vscode
 build/*
-dist/*
 test
 *.spec
 *.log

@@ -1,0 +1,6 @@
+pyinstaller.exe --uac-admin --onefile login2cqupt.py
+git status
+git add .
+git commit --amend
+$env:HTTPS_PROXY = "http://127.0.0.1:10809"
+git push -u origin main -f

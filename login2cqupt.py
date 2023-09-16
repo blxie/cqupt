@@ -16,7 +16,7 @@ from selenium.common.exceptions import TimeoutException
 from logger import LogManager
 
 
-MAX_RETRY_TIMES = 3
+MAX_RETRY_TIMES = 4
 
 
 class Login2CQUPT:
@@ -374,7 +374,7 @@ class Login2CQUPT:
             self.login_msg["mac"] = adapter["MacAddress"].replace("-", "").replace(":", "")
             # self.login_msg['mac'] = generate_random_mac()
 
-            if MAX_RETRY_TIMES >= 3:
+            if MAX_RETRY_TIMES >= 4:
                 self.disable_adapter(adapter_name)
                 MAX_RETRY_TIMES = 0
                 return
@@ -441,7 +441,7 @@ def main():
     )
 
     parser.add_argument("--log_path", default="./cqupt.log", type=str, help="log path save dir")
-    parser.add_argument("--sleep_time", default=30, type=int, help="interval time of auto login")
+    parser.add_argument("--sleep_time", default=10, type=int, help="interval time of auto login")
     parser.add_argument("-d", "--device", default="pc", choices=["pc", "phone"], help="fake device, phone or pc")
 
     args = parser.parse_args()

@@ -12,7 +12,7 @@ conda activate test
 pip install -r requirements.txt
 ```
 
-- `PowerShell` 安装（依赖于这个命令行软件）
+-   `PowerShell` 安装（依赖于这个命令行软件）
 
 > 官方文档：https://learn.microsoft.com/zh-cn/powershell/scripting/install/installing-powershell-on-windows?view=powershell-7.3#install-powershell-using-winget-recommended
 
@@ -26,7 +26,7 @@ winget install --id Microsoft.Powershell --source winget
 > 打包为 `.exe` 可执行文件，
 
 ```bash
-pyinstaller.exe --uac-admin login2cqupt.py
+pyinstaller.exe --uac-admin --onefile login2cqupt.py
 ```
 
 > 作为服务程序进行安装

@@ -1,0 +1,7 @@
+account: "3116431"
+password: "yjshl4_Z"
+operator: "移动"
+log_path: "./cqupt.log"
+sleep_time: 3
+device: "pc"
+max_retry_times: 4

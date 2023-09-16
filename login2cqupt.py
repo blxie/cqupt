@@ -5,6 +5,7 @@ import subprocess
 import requests
 import re
 import json
+import yaml
 import random
 
 from selenium import webdriver
@@ -16,11 +17,10 @@ from selenium.common.exceptions import TimeoutException
 from logger import LogManager
 
 
-MAX_RETRY_TIMES = 4
-
-
 class Login2CQUPT:
-    def __init__(self, login_msg: dict = None):
+    def __init__(self, login_msg: dict = None, logger=None):
+        self.logger = logger
+
         self.devices = {"pc": 0, "phone": 1}
         self.login_msg = dict(account="", password="", operator="移动", device="pc")
         self.operators = {
@@ -41,8 +41,6 @@ class Login2CQUPT:
             self.login_msg["operator"] = self.operators.get(self.login_msg["operator"])
             self.login_msg["device"] = self.devices.get(self.login_msg["device"])
 
-            self.logger = LogManager(login_msg["log_path"]).initialize()
-            # self.logger.info(self.login_msg)
             self.logger.info(f"updated login_msg: {self.login_msg} ✔️")
 
     def get_local_ip(self):
@@ -53,11 +51,9 @@ class Login2CQUPT:
             local_ip = sock.getsockname()[0]
             sock.close()
             return local_ip
-        except socket.error as e:
-            self.logger.error(f"Socket error @get_local_ip()\n{e}")
         except Exception as e:
-            self.logger.error(f"Error @get_local_ip()\n{e}")
-        return None
+            self.logger.error(f"@get_local_ip(): {e}")
+            return None
 
     def validate_link_speed(self, link_speed):
         pattern = r"^(\d+(\.\d+)?)\s+(bps|Kbps|Mbps|Gbps)$"
@@ -70,7 +66,12 @@ class Login2CQUPT:
         try:
             match = self.validate_link_speed(link_speed)
 
-            conversion_factors = {"bps": 1, "Kbps": 1000, "Mbps": 1000000, "Gbps": 1000000000}
+            conversion_factors = {
+                "bps": 1,
+                "Kbps": 1000,
+                "Mbps": 1000000,
+                "Gbps": 1000000000,
+            }
 
             speed = float(match.group(1))
             unit = match.group(3)
@@ -82,13 +83,16 @@ class Login2CQUPT:
         except ValueError as e:
             self.logger.error(f"ValueError @extract_link_speed(): {e}")
         except Exception as e:
-            self.logger.error(f"Error @extract_link_speed(): {e}")
+            self.logger.error(f"@extract_link_speed(): {e}")
 
     def get_net_adapter_info(self):
         try:
             command = "Get-NetAdapter -Name '以太网','WLAN*' | Select-Object Name, Status, MacAddress, LinkSpeed | ConvertTo-Json"
             completed_process = subprocess.run(
-                ["pwsh", "-Command", command], capture_output=True, text=True, encoding="gbk"
+                ["pwsh", "-Command", command],
+                capture_output=True,
+                text=True,
+                encoding="gbk",
             )
             output = completed_process.stdout.strip()
             adapter_info = json.loads(output)
@@ -96,58 +100,46 @@ class Login2CQUPT:
                 adapter_info = [adapter_info]
             # return json.dumps(adapter_info, ensure_ascii=False)
             return adapter_info
-        except subprocess.CalledProcessError as e:
-            self.logger.error(f"Error @get_net_adapter_info(): {e.returncode}\n{e.stderr}")
         except Exception as e:
-            self.logger.error(f"Error @get_net_adapter_info()\n{e}")
+            self.logger.error(f"@get_net_adapter_info(): {e}")
         return None
 
     def enable_adapter(self, adapter_name):
-        """
-        pwsh 太消耗资源！
-        """
+        # pwsh 太消耗资源！
         try:
-            command = f"Enable-NetAdapter -Name '{adapter_name}'"
-            result = subprocess.run(["pwsh", "-Command", command], capture_output=True, text=True, check=True)
-            # result = subprocess.run(
-            #     ["netsh", "interface", "set", "interface", adapter_name, "admin=enable"],
-            #     capture_output=True,
-            #     text=True,
-            # )
+            # command = f"Enable-NetAdapter -Name '{adapter_name}'"
+            command = f"netsh interface set interface {adapter_name} admin=enable"
+            result = subprocess.run(
+                ["pwsh", "-Command", command],
+                capture_output=True,
+                text=True,
+                check=True,
+            )
 
             if result.returncode == 0:
                 self.logger.info(f"Successfully enabled NetAdapter: {adapter_name}")
             else:
                 self.logger.error(f"Failed to enable NetAdapter: {adapter_name}")
                 self.logger.error(f"Command output: {result.stdout.strip()}")
-        except subprocess.CalledProcessError as e:
-            self.logger.error(f"Command execution error @enable_adapter(): {e}")
-            self.logger.error(f"Command output: {e.output}")
-        except OSError as e:
-            self.logger.error(f"OS error @enable_adapter(): {e}")
         except Exception as e:
-            self.logger.error(f"Error @enable_adapter(): {e}")
+            self.logger.error(f"@enable_adapter(): {e}")
 
     def disable_adapter(self, adapter_name):
         try:
-            command = f"Disable-NetAdapter -Name '{adapter_name}' -Confirm:$false"
-            result = subprocess.run(["pwsh", "-Command", command], capture_output=True, text=True)
-            # result = subprocess.run(
-            #     ["netsh", "interface", "set", "interface", adapter_name, "admin=disable"],
-            #     capture_output=True,
-            #     text=True,
-            # )
+            # command = f"Disable-NetAdapter -Name '{adapter_name}' -Confirm:$false"
+            command = f"netsh interface set interface {adapter_name} admin=disable"
+            result = subprocess.run(
+                ["pwsh", "-Command", command],
+                capture_output=True,
+                text=True,
+            )
             if result.returncode == 0:
                 self.logger.info(f"Successfully disabled NetAdapter: {adapter_name}")
             else:
                 self.logger.warning(f"Failed to disable NetAdapter: {adapter_name}")
                 self.logger.warning(f"Command output: {result.stdout}")
-        except subprocess.CalledProcessError as e:
-            self.logger.error(f"Command execution error @disable_adapter(): {e}")
-        except OSError as e:
-            self.logger.error(f"OS error @disable_adapter(): {e}")
         except Exception as e:
-            self.logger.error(f"Error @disable_adapter(): {e}")
+            self.logger.error(f"@disable_adapter(): {e}")
 
     def enable_adapter_auto_connect(self, adapter_name):
         command = f"""
@@ -155,85 +147,63 @@ class Login2CQUPT:
         Get-NetAdapter -Name $adapterName | Set-NetIPInterface -Dhcp Enabled
         """
         try:
-            result = subprocess.run(["pwsh", "-Command", command], capture_output=True, text=True)
+            result = subprocess.run(
+                ["pwsh", "-Command", command], capture_output=True, text=True
+            )
             return result.stdout  # 返回命令执行的标准输出
-        except subprocess.CalledProcessError as e:
-            self.logger.error(f"Command execution error @enable_adapter_auto_connect(): {e}")
-        except OSError as e:
-            self.logger.error(f"OS error @enable_adapter_auto_connect(): {e}")
         except Exception as e:
-            self.logger.error(f"Error @enable_adapter_auto_connect(): {e}")
+            self.logger.error(f"@enable_adapter_auto_connect(): {e}")
 
     def check_wifi_connection(self, adapter_name, wifi_name):
         try:
-            command = [
-                "pwsh",
-                "-Command",
-                '(Get-NetConnectionProfile -InterfaceAlias "{}").Name'.format(adapter_name),
-            ]
-            result = subprocess.run(command, capture_output=True, text=True)
+            command = f"(Get-NetConnectionProfile -InterfaceAlias {adapter_name}).Name"
+            result = subprocess.run(
+                ["pwsh", "-Command", command],
+                capture_output=True,
+                text=True,
+            )
 
             if result.returncode == 0:
                 connection_name = result.stdout.strip()
                 return wifi_name == connection_name
-            else:
-                self.logger.warning(f"Failed to execute PowerShell command @check_wifi_connection()")
-                self.logger.warning(f"Return code: {result.returncode}")
-        except subprocess.CalledProcessError as e:
-            self.logger.error(f"Command execution error @check_wifi_connection(): {e}")
-        except OSError as e:
-            self.logger.error(f"OS error @check_wifi_connection(): {e}")
         except Exception as e:
-            self.logger.error(f"Error @check_wifi_connection(): {e}")
-
-        return False
+            self.logger.error(f"@check_wifi_connection(): {e}")
+            return False
 
     def scan_wifi(self, adapter_name, wifi_name):
         try:
-            command = [
-                "pwsh",
-                "-Command",
-                f"netsh wlan show networks mode=Bssid '{adapter_name}'",
-                "|",
-                f"Select-String -Pattern '{wifi_name}'",
-            ]
-            result = subprocess.run(command, capture_output=True, text=True)
+            # netsh wlan show networks mode=Bssid "WLAN" | Select-String -Pattern "CQUPT"
+            command = f'netsh wlan show networks mode=Bssid "{adapter_name}" | Select-String -Pattern "{wifi_name}"'
+            result = subprocess.run(
+                ["pwsh", "-Command", command],
+                capture_output=True,
+                text=True,
+            )
 
             if result.returncode == 0:
                 output = result.stdout.strip().split("\n")
                 output = [re.sub(r"\x1b\[\d+m", "", line) for line in output]
                 return output
-            else:
-                self.logger.error(f"Error executing scan_wifi():\n{result.stderr}")
-        except subprocess.CalledProcessError as e:
-            self.logger.error(f"Command execution error @scan_wifi(): {e}")
-        except OSError as e:
-            self.logger.error(f"OS error @scan_wifi(): {e}")
         except Exception as e:
-            self.logger.error(f"Error @scan_wifi(): {e}")
+            self.logger.error(f"@scan_wifi(): {e}")
 
         return []
 
     def connect_to_wifi(self, ssid, wlan_name):
         try:
-            command = [
-                "pwsh",
-                "-Command",
-                f'netsh wlan connect name="{ssid}" interface="{wlan_name}"',
-            ]
-            result = subprocess.run(command, capture_output=True, text=True)
+            command = f'netsh wlan connect name="{ssid}" interface="{wlan_name}"'
+            result = subprocess.run(
+                ["pwsh", "-Command", command],
+                capture_output=True,
+                text=True,
+            )
             if result.returncode == 0:
                 return True
-        except subprocess.CalledProcessError as e:
-            self.logger.error(f"Command execution error @connect_to_wifi(): {e}")
-        except OSError as e:
-            self.logger.error(f"OS error @connect_to_wifi(): {e}")
         except Exception as e:
-            self.logger.error(f"Error @connect_to_wifi(): {e}")
+            self.logger.error(f"@connect_to_wifi(): {e}")
+            return False
 
-        return False
-
-    def browser_login(self, user_id="", password="", network_type="移动"):
+    def browser_login(self):
         self.logger.info(">> @browser_login() v2!")
 
         options = webdriver.EdgeOptions()
@@ -244,10 +214,12 @@ class Login2CQUPT:
         driver = webdriver.Edge(options=options)
         driver.get("http://192.168.200.2")
 
-        xpath_success_msg = '//*[@id="edit_body"]/div[2]/div[2]/form/div[@class="edit_lobo_cell"]'
+        xpath_success_msg = (
+            '//*[@id="edit_body"]/div[2]/div[2]/form/div[@class="edit_lobo_cell"]'
+        )
         xpath_username = '//*[@id="edit_body"]/div[3]/div[1]/div/div[2]/div[1]/div/form/input[3][@name="DDDDD"]'
         xpath_password = '//*[@id="edit_body"]/div[3]/div[1]/div/div[2]/div[1]/div/form/input[4][@name="upass"]'
-        xpath_network_types = {
+        xpath_operators = {
             "电信": '//*[@id="edit_body"]/div[3]/div[1]/div/div[2]/div[1]/div/div[5]/span[2]/input[@type="radio" and contains(@value,"@telecom")]',
             "移动": '//*[@id="edit_body"]/div[3]/div[1]/div/div[2]/div[1]/div/div[5]/span[3]/input[@type="radio" and contains(@value,"@cmcc")]',
             "联通": '//*[@id="edit_body"]/div[3]/div[1]/div/div[2]/div[1]/div/div[5]/span[4]/input[@type="radio" and contains(@value,"@unicom")]',
@@ -259,15 +231,27 @@ class Login2CQUPT:
         try:
             wait = WebDriverWait(driver, 3)
             try:
-                status = wait.until(EC.text_to_be_present_in_element((By.XPATH, xpath_success_msg), "您已经成功登录。"))
+                status = wait.until(
+                    EC.text_to_be_present_in_element(
+                        (By.XPATH, xpath_success_msg), "您已经成功登录。"
+                    )
+                )
             except TimeoutException:
                 xpath_success_msg = '//*[@id="message"][@class="edit_lobo_cell"]'
-                status = wait.until(EC.text_to_be_present_in_element((By.XPATH, xpath_success_msg), "AC认证失败"))
+                status = wait.until(
+                    EC.text_to_be_present_in_element(
+                        (By.XPATH, xpath_success_msg), "AC认证失败"
+                    )
+                )
         except TimeoutException as e:
             if status:
                 self.logger.info("手动登录成功")
                 driver.quit()
                 return status
+
+        user_id = self.login_msg["account"]
+        password = self.login_msg["password"]
+        operator = "移动"
 
         """
         直接使用 clear() 会报错！要么不使用，要么先用变量接收，然后再clear()
@@ -280,8 +264,10 @@ class Login2CQUPT:
         """
         使用JavaScript执行点击操作，绕过元素被拦截的问题
         """
-        network_type_radio = driver.find_element(By.XPATH, xpath_network_types.get(network_type, ""))
-        driver.execute_script("arguments[0].click();", network_type_radio)
+        operator_radio = driver.find_element(
+            By.XPATH, xpath_operators.get(operator, "")
+        )
+        driver.execute_script("arguments[0].click();", operator_radio)
         # target.click()
 
         save_password_checkbox = driver.find_element(By.XPATH, xpath_save_password)
@@ -298,7 +284,11 @@ class Login2CQUPT:
                 status = wait.until(EC.url_to_be("http://www.cqupt.edu.cn/"))
             except TimeoutException:
                 xpath_success_msg = '//*[@id="message"][@class="edit_lobo_cell"]'
-                status = wait.until(EC.text_to_be_present_in_element((By.XPATH, xpath_success_msg), "AC认证失败"))
+                status = wait.until(
+                    EC.text_to_be_present_in_element(
+                        (By.XPATH, xpath_success_msg), "AC认证失败"
+                    )
+                )
         except TimeoutException as e:
             pass
 
@@ -313,6 +303,8 @@ class Login2CQUPT:
     # 可不改
     def terminal_login(self):
         self.logger.info(">> @terminal_login()")
+        self.login_msg["ip"] = self.get_local_ip()
+
         url = "http://192.168.200.2:801/eportal/?c=Portal&a=login&callback=dr1003&login_method=1&user_account=,{device},{account}@{operator}&user_password={password}&wlan_user_ip={ip}&wlan_user_ipv6=&wlan_user_mac={mac}&wlan_ac_ip=&wlan_ac_name="
 
         try:
@@ -330,16 +322,9 @@ class Login2CQUPT:
                 self.terminal_login()
             else:
                 self.logger.info(">> 您可能欠费停机")
-                return self.browser_login(
-                    user_id=self.login_msg["account"],
-                    password=self.login_msg["password"],
-                    network_type="移动",
-                )
-        except requests.RequestException as e:
-            self.logger.error(f"Error @terminal_login()\n{e}")
-            return False
+                return self.browser_login()
         except Exception as e:
-            self.logger.error(f"Error @terminal_login()\n{e}")
+            self.logger.error(f"@terminal_login(): {e}")
             return False
 
     def generate_random_mac(self):
@@ -347,16 +332,57 @@ class Login2CQUPT:
         mac_address = "".join(["{:02x}".format(x) for x in mac])  # 格式化为不带分隔符的MAC地址字符串
         return mac_address
 
+    def exec_eth(self, adapter_name, retry_times):
+        # 默认以太网自动连接网络
+        self.logger.info("*" * 12 + " @Enthernet " + "*" * 12)
+
+        if self.terminal_login():
+            self.logger.info(f">> {adapter_name} ✅\n")
+            retry_times = 0
+        else:
+            self.logger.info(f">> {adapter_name} ❌ {retry_times}\n")
+            retry_times += 1
+
+        return retry_times
+
+    def exec_wlan(self, adapter_name, retry_times):
+        self.logger.info("*" * 12 + " @WLAN " + "*" * 12)
+        # WLAN 需要手动连接指定网络
+        output = self.scan_wifi(adapter_name=adapter_name, wifi_name="CQUPT")
+        ssids = [item.split(": ", 1)[1] for item in output]
+        ssids = sorted(
+            ssids,
+            key=lambda x: ("CQUPT-5G", "CQUPT-2.4G", "CQUPT").index(x)
+            if x in ("CQUPT-5G", "CQUPT-2.4G", "CQUPT")
+            else float("inf"),
+        )
+
+        for ssid in ssids:
+            self.logger.info(f">> {adapter_name}@{ssid} connect and login...")
+            if self.check_wifi_connection(adapter_name=adapter_name, wifi_name=ssid):
+                self.logger.info(f"{adapter_name} have connected {ssid}.")
+            elif self.connect_to_wifi(ssid=ssid, wlan_name=adapter_name):
+                self.logger.info(f"{adapter_name} ✔️ {ssid}")
+            else:
+                self.logger.info(f"{adapter_name} ❌ {ssid}")
+                retry_times += 1
+                break
+
+            if self.terminal_login():
+                self.logger.info(f"{adapter_name}@{ssid} ✅\n")
+                retry_times = 0
+                break
+            else:
+                self.logger.info(f"{adapter_name}@{ssid} ❌ {retry_times}\n")
+                retry_times += 1
+                break
+
+        return retry_times
+
     def run(self):
         self.logger.info("#" * 16 + " New Conn. " + "#" * 16)
 
-        global MAX_RETRY_TIMES
-        self.login_msg["mac"] = "000000000000"
-        self.login_msg["ip"] = self.get_local_ip()
-
-        ssids = ["CQUPT-5G", "CQUPT", "CQUPT-2.4G"]
         adapter_info = self.get_net_adapter_info()
-
         if not adapter_info:
             time.sleep(3)
             self.logger.warning("Not available netadapter! Retrying...\n")
@@ -366,93 +392,84 @@ class Login2CQUPT:
             if adapter["Status"] not in ["Up", "Disconnected"]:
                 self.enable_adapter(adapter["Name"])
 
-        adapter_info = sorted(adapter_info, key=lambda x: self.extract_link_speed(x["LinkSpeed"]), reverse=True)
+        adapter_info = sorted(
+            adapter_info,
+            key=lambda x: self.extract_link_speed(x["LinkSpeed"]),
+            reverse=True,
+        )
 
+        retry_times = 0
         for adapter in adapter_info:
             adapter_name = adapter["Name"]
             adapter_status = adapter["Status"]
-            self.login_msg["mac"] = adapter["MacAddress"].replace("-", "").replace(":", "")
+
+            if (adapter_status == "Disconnected" and "WLAN" in adapter_name) or (
+                retry_times >= self.login_msg["max_retry_times"]
+            ):
+                self.disable_adapter(adapter_name)
+                retry_times = 0
+                break
+
+            self.login_msg["mac"] = (
+                adapter["MacAddress"].replace("-", "").replace(":", "")
+            )
             # self.login_msg['mac'] = generate_random_mac()
 
-            if MAX_RETRY_TIMES >= 4:
-                self.disable_adapter(adapter_name)
-                MAX_RETRY_TIMES = 0
-                return
-
-            if "以太网" == adapter_name and "Up" == adapter_status:
-                # 默认以太网自动连接网络
-                self.logger.info("*" * 12 + " @Enthernet " + "*" * 12)
-
-                if self.terminal_login():
-                    self.logger.info(f">> {adapter_name} ✅\n")
-                    MAX_RETRY_TIMES = 0
-                    return
-                else:
-                    self.logger.info(f">> {adapter_name} ❌ {MAX_RETRY_TIMES}\n")
-                    MAX_RETRY_TIMES += 1
-                    return
+            if adapter_name == "以太网" and adapter_status == "Up":
+                retry_times = self.exec_eth(adapter_name, retry_times)
             elif "WLAN" in adapter_name:
-                self.logger.info("*" * 12 + " @WLAN " + "*" * 12)
+                retry_times = self.exec_wlan(adapter_name, retry_times)
 
-                try:
-                    # WLAN 需要手动连接指定网络
-                    output = self.scan_wifi(adapter_name=adapter_name, wifi_name="CQUPT")
-                    ssids = [item.split(": ", 1)[1] for item in output]
-                    ssids = sorted(
-                        ssids,
-                        key=lambda x: ("CQUPT-5G", "CQUPT-2.4G", "CQUPT").index(x)
-                        if x in ("CQUPT-5G", "CQUPT-2.4G", "CQUPT")
-                        else float("inf"),
-                    )
 
-                    for ssid in ssids:
-                        self.logger.info(f">> {adapter_name}@{ssid} connect and login...")
-                        if self.check_wifi_connection(adapter_name=adapter_name, wifi_name=ssid):
-                            self.logger.info(f"{adapter_name} have connected {ssid}.")
-                        elif self.connect_to_wifi(ssid=ssid, wlan_name=adapter_name):
-                            self.logger.info(f"{adapter_name} ✔️ {ssid}")
-                        else:
-                            self.logger.info(f"{adapter_name} ❌ {ssid}")
-                            MAX_RETRY_TIMES += 1
-                            return
-
-                        if self.terminal_login():
-                            self.logger.info(f"{adapter_name}@{ssid} ✅\n")
-                            MAX_RETRY_TIMES = 0
-                            return
-                        else:
-                            self.logger.info(f"{adapter_name}@{ssid} ❌ {MAX_RETRY_TIMES}\n")
-                            MAX_RETRY_TIMES += 1
-                            return
-                except Exception as e:
-                    self.logger.error("@run(): output -- ssid: ", e)
+def load_config(filename):
+    try:
+        with open(filename, "r", encoding="utf-8") as config_file:
+            config = yaml.safe_load(config_file)
+        return config
+    except FileNotFoundError:
+        print(f"Config file '{filename}' not found.")
+        return None
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Auto login script for CQUPT")
-    parser.add_argument("-ac", "--account", default="3116431")
-    parser.add_argument("-pwd", "--password", default="")
-    parser.add_argument(
-        "-opt",
-        "--operator",
-        default="移动",
-        choices=["移动", "电信", "联通", "其他"],
-        help="operator, cmcc, telecom, unicom or teacher",
-    )
+    # parser = argparse.ArgumentParser(description="Auto login script for CQUPT")
+    # parser.add_argument("-ac", "--account", default="3116431")
+    # parser.add_argument("-pwd", "--password", default="")
+    # parser.add_argument(
+    #     "-opt",
+    #     "--operator",
+    #     default="移动",
+    #     choices=["移动", "电信", "联通", "其他"],
+    #     help="operator, cmcc, telecom, unicom or teacher",
+    # )
 
-    parser.add_argument("--log_path", default="./cqupt.log", type=str, help="log path save dir")
-    parser.add_argument("--sleep_time", default=10, type=int, help="interval time of auto login")
-    parser.add_argument("-d", "--device", default="pc", choices=["pc", "phone"], help="fake device, phone or pc")
+    # parser.add_argument("--log_path", default="./cqupt.log", type=str, help="log path save dir")
+    # parser.add_argument("--sleep_time", default=10, type=int, help="interval time of auto login")
+    # parser.add_argument("-d", "--device", default="pc", choices=["pc", "phone"], help="fake device, phone or pc")
 
-    args = parser.parse_args()
-    app = Login2CQUPT(login_msg=vars(args))
+    # args = parser.parse_args()
+    # app = Login2CQUPT(login_msg=vars(args))
+
+    config = load_config("config.yaml")
+
+    account = config.get("account", "3116431")
+    password = config.get("password", "")
+    operator = config.get("operator", "移动")
+    device = config.get("device", "pc")
+
+    sleep_time = config.get("sleep_time", 10)
+    log_path = config.get("log_path", "./cqupt.log")
+
+    logger = LogManager(log_path=log_path).initialize()
+    app = Login2CQUPT(login_msg=config, logger=logger)
 
     while True:
         try:
             app.run()
-            time.sleep(args.sleep_time)
+            time.sleep(sleep_time)
         except Exception as e:
-            app.logger.error("!!!\n", e)
+            app.logger.error("@main!!!: ", e)
+            break
 
 
 if __name__ == "__main__":

@@ -4,9 +4,11 @@ Auto-login toy for CQUPT.
 
 ## 使用方法
 
-下载可执行文件
+下载可执行文件:
+
 方法1：下载 `dist` 目录中的所有文件
-方法2：通过 `release` 下载，
+
+方法2：通过 `release` 下载。
 
 1. 修改配置文件 `config.yaml`，主要是账号和密码。
 
@@ -35,6 +37,14 @@ nssm install login2cqupt  # 安装 login2cqupt 服务程序
 # 找到 `APP/login2cqupt/Login2CQUPT_base/tiny.exe`
 
 nssm start login2cqupt  # 启动 login2cqupt 服务程序
+```
+
+将以上命令封装为一个 `InstallAsService.bat` 脚本文件，直接 **以管理员身份** 运行这个脚本文件即可。
+```powershell
+nssm stop cqupt
+nssm remove cqupt
+nssm install cqupt
+nssm start cqupt
 ```
 
 如图示，

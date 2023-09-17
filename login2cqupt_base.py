@@ -362,8 +362,13 @@ class Login2CQUPT:
 
     def exec_login2wlan(self, adapter_name, retry_times):
         self.logger.info("*" * 12 + " @WLAN " + "*" * 12)
+
         # WLAN 需要手动连接指定网络
         output = self.scan_wifi(adapter_name=adapter_name, wifi_name="CQUPT")
+        if not output:
+            self.logger.error(f">> {adapter_name} not available now! ❌")
+            retry_times += 1
+
         ssids = [item.split(": ", 1)[1] for item in output]
         ssids = sorted(
             ssids,
@@ -394,7 +399,7 @@ class Login2CQUPT:
 
         return retry_times
 
-    def exec_login(self):
+    def exec_login(self, retry_times=0):
         adapter_info = self.get_net_adapter_info()
 
         if not adapter_info:
@@ -412,14 +417,11 @@ class Login2CQUPT:
             reverse=True,
         )
 
-        retry_times = 0
         for adapter in adapter_info:
             adapter_name = adapter["Name"]
             adapter_status = adapter["Status"]
 
-            if (adapter_status == "Disconnected" and "WLAN" in adapter_name) or (
-                retry_times >= self.login_msg["max_retry_times"]
-            ):
+            if retry_times >= self.login_msg["max_retry_times"]:
                 self.logger.info(
                     f"{adapter_name}: {adapter_status}, retry times: {retry_times}. Disabling...\n"
                 )
@@ -430,13 +432,15 @@ class Login2CQUPT:
             self.login_msg["mac"] = (
                 adapter["MacAddress"].replace("-", "").replace(":", "")
             )
-            self.login_msg["mac"] = self.generate_random_mac()
+            # self.login_msg["mac"] = self.generate_random_mac()
 
             if adapter_name == "以太网" and adapter_status == "Up":
                 retry_times = self.exec_login2eth(adapter_name, retry_times)
                 break
             elif "WLAN" in adapter_name:
                 retry_times = self.exec_login2wlan(adapter_name, retry_times)
+
+        return retry_times
 
     def network_smooth(self):
         # NOTE: only https, http not work!
@@ -450,6 +454,7 @@ class Login2CQUPT:
             return False
 
     def run(self):
+        retry_times = 0
         while True:
             try:
                 if self.network_smooth():
@@ -457,7 +462,7 @@ class Login2CQUPT:
                 else:
                     self.logger.info("#" * 16 + " New Exec... " + "#" * 16)
                     self.logger.info("Network is not reachable. Attempt to login...")
-                    self.exec_login()
+                    retry_times = self.exec_login(retry_times=retry_times)
 
                 sleep_time = self.login_msg.get("sleep_time", 10)
                 time.sleep(sleep_time)

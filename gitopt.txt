@@ -1,6 +1,11 @@
-pyinstaller.exe --uac-admin --onefile login2cqupt.py
+pyinstaller.exe --uac-admin --onefile login2cqupt_base.py --name Login2CQUPT_base --icon="assets/icons/icon.jpg"
 git status
 git add .
 git commit --amend
 $env:HTTPS_PROXY = "http://127.0.0.1:10809"
 git push -u origin main -f
+git push origin v2.2
+
+git tag
+git tag -a v2.2 -m "xxx"
+git push origin v2.2

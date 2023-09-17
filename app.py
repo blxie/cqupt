@@ -23,7 +23,7 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtGui import QIcon
 from PyQt5.QtCore import Qt, QFile, pyqtSlot, QTimer
 
-from login2cqupt import Login2CQUPT
+from login2cqupt_base import Login2CQUPT
 
 
 class LogManager:

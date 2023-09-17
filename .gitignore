@@ -2,7 +2,7 @@
 build/*
 test
 *.spec
-*.log
+*.log*
 *tmp*
 __pycache__/*
 *copy*

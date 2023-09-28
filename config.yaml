@@ -1,7 +1,0 @@
-account: "3116431"
-password: "yjshl4_Z"
-operator: "移动" # [移动 | 电信 | 联通 | 其他]
-log_path: "./cqupt.log"
-sleep_time: 3
-device: "pc" # [pc | phone]
-max_retry_times: 4

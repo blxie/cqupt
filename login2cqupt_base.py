@@ -453,22 +453,39 @@ class Login2CQUPT:
             self.logger.error("Network is not available ❌")
             return False
 
+    # def run(self):
+    #     retry_times = 0
+    #     while True:
+    #         try:
+    #             if self.network_smooth():
+    #                 self.logger.info("Network is reachable ✅")
+    #             else:
+    #                 self.logger.info("#" * 16 + " New Exec... " + "#" * 16)
+    #                 self.logger.info("Network is not reachable. Attempt to login...")
+    #                 retry_times = self.exec_login(retry_times=retry_times)
+
+    #             sleep_time = self.login_msg.get("sleep_time", 10)
+    #             time.sleep(sleep_time)
+    #         except Exception as e:
+    #             self.logger.error("@run!!!: ", e)
+    #             break
+
     def run(self):
         retry_times = 0
         while True:
             try:
-                if self.network_smooth():
-                    self.logger.info("Network is reachable ✅")
-                else:
-                    self.logger.info("#" * 16 + " New Exec... " + "#" * 16)
-                    self.logger.info("Network is not reachable. Attempt to login...")
-                    retry_times = self.exec_login(retry_times=retry_times)
+                url = "https://www.baidu.com"
+                timeout = 5
+                _ = requests.get(url, timeout=timeout)
+                self.logger.info("Network is reachable ✅")
+            except Exception as e:
+                self.logger.error("@run: ", e)
+                self.logger.info("#" * 16 + " New Exec... " + "#" * 16)
+                self.logger.info("Network is not reachable. Attempt to login...")
+                retry_times = self.exec_login(retry_times=retry_times)
 
                 sleep_time = self.login_msg.get("sleep_time", 10)
                 time.sleep(sleep_time)
-            except Exception as e:
-                self.logger.error("@run!!!: ", e)
-                break
 
 
 def load_config(filename):

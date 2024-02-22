@@ -1,6 +1,6 @@
 # cqupt
 
-Auto-login toy for CQUPT.
+Auto-login tools for CQUPT.
 
 ## 使用方法
 
